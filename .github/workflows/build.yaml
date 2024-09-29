@@ -45,7 +45,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/SeriousBug/random
+          images: ghcr.io/SeriousBug/random-api
 
       - name: Build, and push if not a PR
         uses: docker/build-push-action@v5
