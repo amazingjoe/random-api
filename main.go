@@ -97,7 +97,7 @@ func randDice(c *fiber.Ctx) error {
 
 	if len(input) == 0 || len(input) > 100 {
 		c.SendStatus(400)
-		return c.SendString("Invalid input")
+		return c.SendString("invalid input")
 	}
 
 	result, _, err := dice.Roll(input)
@@ -160,9 +160,8 @@ func randUuid(c *fiber.Ctx) error {
 	return c.SendString(id.String())
 }
 
-func main() {
+func App() *fiber.App {
 	app := fiber.New()
-
 	app.Use(recover.New())
 
 	app.Use(cors.New(cors.Config{
@@ -191,7 +190,12 @@ func main() {
 	v1.Get("/uuid", randUuid)
 
 	app.Mount("/", SetupViews())
+	
+	return app
+}
 
+func main() {
+	app := App()
 	err := app.Listen(":3000")
 	if err != nil {
 		panic(err)
