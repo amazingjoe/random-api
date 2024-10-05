@@ -8,7 +8,8 @@
     "dev:ui": "vite",
     "build": "npm-run-all --serial build:ui build:server",
     "build:server": "CGO_ENABLED=0 go build",
-    "build:ui": "vite build"
+    "build:ui": "vite build",
+    "test": "go test"
   },
   "dependencies": {
     "@preact/signals": "^1.3.0",
