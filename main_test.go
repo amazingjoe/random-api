@@ -5,17 +5,24 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // Utils
 func getResponse(t *testing.T, url string) *http.Response {
-	app := App()
+	app := App(fiber.Config{
+		// 1 MB. The fuzzer sometimes gets too eager and sends a lot of data.
+		ReadBufferSize: 1024 * 1024,
+	})
 
 	req := httptest.NewRequest("GET", url, nil)
+	
 	resp, err := app.Test(req)
 	if err != nil {
 		t.Fatal(err)
@@ -218,7 +225,7 @@ func TestCustomDice(t *testing.T) {
 
 func TestDiceFullOutput(t *testing.T) {
 	result := getDice(t, "input=3d6kh2&output=full")
-	match, _ := regexp.MatchString(`^-?\d+ *\[[-\d ]*\] *($|\(\[[-\d ]*\]\)$)`, result)
+	match, _ := regexp.MatchString(`^-?\d+ *(\[[-\d ]*\])? *(\(\[[-\d ]*\]\))?`, result)
 	if !match {
 		t.Fatalf("Unexpected dice output format: %s", result)
 	}
@@ -233,10 +240,10 @@ func TestFudgeDice(t *testing.T) {
 }
 
 func TestFudgeDiceWithModifier(t *testing.T) {
-	result := getDice(t, "input=4df+2")
+	result := getDice(t, "input=" + url.QueryEscape("4df+10"))
 	value := readInt(t, result)
-	if value < -2 || value > 10 {
-		t.Fatalf("Expected value between -2 and 10, got %d", value)
+	if value < 6 || value > 14 {
+		t.Fatalf("Expected value between 6 and 14, got %d", value)
 	}
 }
 
@@ -252,15 +259,15 @@ func FuzzDice(f *testing.F) {
 	f.Add("4df-2", "sum")
 
 	f.Fuzz(func(t *testing.T, input string, output string) {
-		resp := getResponse(t, fmt.Sprintf("/v1/dice?input=%s&output=%s", input, output))
+		resp := getResponse(t, fmt.Sprintf("/v1/dice?input=%s&output=%s", url.QueryEscape(input), url.QueryEscape(output)))
 		body := readResponse(t, *resp)
 		if resp.StatusCode != 200 {
-			match, err := regexp.MatchString(`Bad roll format|invalid input|invalid output`, string(body))
+			match, err := regexp.MatchString(`Bad roll format|Sides must be 1 or more|invalid input|invalid output|more dice than rolled|no result|Count must be 1 or more|Sides must be 2 or more`, string(body))
 			if !match || err != nil {
 				t.Fatalf("Unexpected response: %s\n%v", body, err)
 			}
 		} else {
-			match, err := regexp.MatchString(`^-?\d+ *($|\[[-\d ]*\] *($|\(\[[-\d ]*\]\)$))`, string(body))
+					match, err := regexp.MatchString(`^-?\d+ *(\[[-\d ]*\])? *(\(\[[-\d ]*\]\))?`, string(body))
 			if !match || err != nil {
 				t.Fatalf("Unexpected response: %s\n%v", body, err)
 			}

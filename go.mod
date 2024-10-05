@@ -4,7 +4,7 @@ go 1.23.1
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.5
-	github.com/justinian/dice v1.0.2
+	github.com/justinian/dice v1.0.3
 	github.com/utking/extemplate v0.0.0-20240811163052-49c208254ff2
 )
 

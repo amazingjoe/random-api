@@ -18,9 +18,9 @@ package main
 
 import (
 	_ "embed"
-	"errors"
 	"fmt"
 	"math/rand/v2"
+	"regexp"
 	"strings"
 	"time"
 
@@ -93,11 +93,16 @@ func randWord(c *fiber.Ctx) error {
 
 func randDice(c *fiber.Ctx) error {
 	input := c.Query("input", "1d6")
-	output := c.Query("output", "sum")
 
-	if len(input) == 0 || len(input) > 100 {
+	if len(input) == 0 || len(input) > 100 || strings.Count(input, "d") > 1 || strings.Count(input, " ") > 10 {
 		c.SendStatus(400)
 		return c.SendString("invalid input")
+	}
+	// Checking for any 4-digit numbers in the input
+	match, _ := regexp.MatchString(`\d\d\d\d`, input)
+	if match {
+		c.SendStatus(400)
+		return c.SendString("invalid input, numbers bigger than 999 are not allowed for dice")
 	}
 
 	result, _, err := dice.Roll(input)
@@ -106,14 +111,28 @@ func randDice(c *fiber.Ctx) error {
 		return c.SendString(err.Error())
 	}
 
-	if output == "sum" {
-		return c.SendString(fmt.Sprint(result.Int()))
-	}
-	if output == "full" {
-		return c.SendString(result.String())
+	return sendDiceResult(c, result)
+}
+
+func sendDiceResult(c *fiber.Ctx, result dice.RollResult) error {
+	outputFormat := c.Query("output", "sum")
+
+	var out string
+	switch outputFormat {
+	case "sum":
+		out = fmt.Sprint(result.Int())
+	case "full":
+		out = result.String()
+	default:
+		c.SendStatus(400)
+		return c.SendString("invalid output, must be sum or full")
 	}
 
-	return errors.New("invalid output, must be sum or full")
+	if strings.Contains(out, "no result") {
+		c.SendStatus(400)
+		return c.SendString("invalid input")
+	}
+	return c.SendString(out)
 }
 
 func randUlid(c *fiber.Ctx) error {
@@ -160,8 +179,8 @@ func randUuid(c *fiber.Ctx) error {
 	return c.SendString(id.String())
 }
 
-func App() *fiber.App {
-	app := fiber.New()
+func App(config ...fiber.Config) *fiber.App {
+	app := fiber.New(config...)
 	app.Use(recover.New())
 
 	app.Use(cors.New(cors.Config{
@@ -190,7 +209,7 @@ func App() *fiber.App {
 	v1.Get("/uuid", randUuid)
 
 	app.Mount("/", SetupViews())
-	
+
 	return app
 }
 
