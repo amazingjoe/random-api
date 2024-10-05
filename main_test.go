@@ -348,3 +348,67 @@ func TestUUIDv7(t *testing.T) {
 		t.Fatalf("Invalid UUID v7 format: %s", uuid)
 	}
 }
+
+func TestBadUuidVersion(t *testing.T) {
+	resp := getResponse(t, "/v1/uuid?version=9")
+	if resp.StatusCode != 400 {
+		t.Fatalf("Expected status code 400, got %d", resp.StatusCode)
+	}
+	body := readResponse(t, *resp)
+	if !strings.Contains(body, "Invalid UUID version") {
+		t.Fatalf("Unexpected response: %s", body)
+	}
+}
+
+func hasIntHeader(t *testing.T, resp *http.Response, header string) int {
+	value := resp.Header.Get(header)
+	if value == "" {
+		t.Fatalf("Expected %s header, got %s", header, value)
+	}
+	
+	val, err := strconv.Atoi(value)
+	if err != nil {
+		t.Fatalf("Invalid %s header: %s", header, value)
+	}
+	
+	return val
+}
+
+// Rate limit
+func TestRateLimit(t *testing.T) {
+	app := App(fiber.Config{
+		// 1 MB. The fuzzer sometimes gets too eager and sends a lot of data.
+		ReadBufferSize: 1024 * 1024,
+	})
+
+	req := httptest.NewRequest("GET", "/v1/int", nil)
+	req.Header.Set("X-Forwarded-For", "10.0.0.1")
+
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != 200 {
+		t.Fatalf("Expected status code 200, got %d", resp.StatusCode)
+	}
+	
+	limit := hasIntHeader(t, resp, "X-RateLimit-Limit")
+	remaining := hasIntHeader(t, resp, "X-RateLimit-Remaining")
+	reset := hasIntHeader(t, resp, "X-RateLimit-Reset")
+
+	if limit < 0 || remaining < 0 || reset < 0 {
+		t.Fatalf("Invalid rate limit headers: %d %d %d", limit, remaining, reset)
+	}
+
+	for i := 0; i < limit; i++ {
+		resp, err = app.Test(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if resp.StatusCode != 200 && (resp.StatusCode != 429 || !strings.Contains(readResponse(t, *resp), "Too many requests")) {
+			t.Fatalf("Expected status code 200 or 429, got %d", resp.StatusCode)
+		}
+	}
+}

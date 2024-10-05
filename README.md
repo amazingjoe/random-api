@@ -1,5 +1,9 @@
 # Random Generation API
 
+[![Codecov](https://img.shields.io/codecov/c/github/seriousbug/random-api)](https://app.codecov.io/gh/SeriousBug/random-api)
+[![Website](https://img.shields.io/website?url=https%3A%2F%2Frnd.bgenc.dev&up_message=rnd.bgenc.dev&down_message=rnd.bgenc.dev&label=docs)](https://rnd.bgenc.dev/)
+[![GitHub License](https://img.shields.io/github/license/seriousbug/random-api?color=green)](https://github.com/SeriousBug/random-api/blob/main/LICENSE.txt)
+
 A simple, public API to generate random words or numbers. This service is free
 to use and available as open-source software. Do you need a random word or a
 UUID in a script? Can't pull in dependencies easily? Call this API to grab one
@@ -28,9 +32,7 @@ https://rnd.bgenc.dev/v1/int?min=1&max=100
 ```
 
 For detailed information on each endpoint and its parameters, please refer to
-the API documentation.
-
-TODO: API documentation site in progress, please hold!
+the [API documentation](https://rnd.bgenc.dev).
 
 ### Rate Limits
 
