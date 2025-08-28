@@ -26,7 +26,7 @@ COPY . .
 COPY --from=ui /src/dist ./dist
 # Build a static binary for use with scratch
 ENV CGO_ENABLED=0 GOOS=linux
-RUN go build -ldflags="-s -w" -o /out/random ./...
+RUN mkdir -p /out && go build -ldflags="-s -w" -o /out/random .
 
 # 3) Minimal runtime image
 FROM scratch
