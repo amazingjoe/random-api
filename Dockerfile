@@ -9,7 +9,7 @@ RUN go mod download
 COPY . .
 # Build a static binary for use with scratch
 ENV CGO_ENABLED=0 GOOS=linux
-RUN --mount=type=cache,target=/root/.cache/go-build \
+RUN --mount=type=cache,id=random-api-go-build,target=/root/.cache/go-build \
     go build -ldflags="-s -w" -o /out/random ./...
 
 # 2) Minimal runtime image
